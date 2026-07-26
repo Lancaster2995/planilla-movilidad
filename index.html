@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Runner — Planilla de Movilidad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -70,19 +70,31 @@ document.currentScript.parentNode.insertBefore(link, document.currentScript);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  /* iOS: evitar que Safari infle el tamaño del texto al rotar */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--sans);
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
   min-height: 100vh;
-
+  min-height: 100dvh; /* iPhone: altura real descontando la barra dinámica de Safari */
+  /* iOS: quitar el destello gris al tocar y el menú contextual por long-press */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
 .wrap {
   max-width: 780px;
   margin: 0 auto;
-  padding: 36px 20px 120px;
+  /* Respetar el Dynamic Island y el indicador de inicio del iPhone */
+  padding:
+    calc(36px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right))
+    calc(120px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
 }
 
 /* ── HEADER ── */
@@ -452,6 +464,7 @@ h1 {
 .export-bar {
   position: sticky;
   bottom: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom)); /* iPhone: no quedar bajo el indicador de inicio */
 }
 .export-inner {
   background: rgba(13,15,20,.85);
@@ -557,11 +570,22 @@ h1 {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* ── iOS / iPhone ── */
+/* Safari hace zoom automático al enfocar un input con font-size < 16px.
+   En pantallas táctiles pequeñas forzamos 16px para evitar ese salto. */
+@media (max-width: 640px) {
+  .field input, .field-trip input, #client-id-input, #meta-num, #meta-fecha { font-size: 16px; }
+}
+/* Respetar preferencia de menos movimiento del sistema (iOS: Reducir movimiento) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
 </style>
 </head>
 <body>
 <!-- PWA install banner (shown only when installable) -->
-<div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:500;background:#232323;border-bottom:1px solid #3f3f3f;padding:12px 18px;display:none;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.4);">
+<div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:500;background:#232323;border-bottom:1px solid #3f3f3f;padding:calc(12px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) 12px calc(18px + env(safe-area-inset-left));display:none;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.4);">
   <img src="data:image/png;base64,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" style="width:38px;height:38px;border-radius:9px;flex:none;">
   <div style="flex:1;min-width:0;">
     <div style="font-size:13px;font-weight:600;color:#f5f5f5;">Runner</div>
@@ -614,7 +638,7 @@ h1 {
           <div style="width:24px;height:24px;border-radius:50%;background:rgba(254,105,20,.15);border:1px solid rgba(254,105,20,.3);color:#fe6914;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">1</div>
           <div>
             <div style="font-size:13px;font-weight:600;color:#f5f5f5;margin-bottom:4px;">Abre Google Cloud Console</div>
-            <a href="https://console.cloud.google.com" target="_blank" style="font-size:12px;color:#fe6914;font-family:monospace;">console.cloud.google.com</a>
+            <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:#fe6914;font-family:monospace;">console.cloud.google.com</a>
             <div style="font-size:12px;color:#b0b0b0;margin-top:4px;">Crea un proyecto nuevo (o usa uno existente)</div>
           </div>
         </div>
@@ -693,6 +717,9 @@ const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 // Carpeta de Drive donde se guardan las planillas (ID extraído de tu link compartido)
 const DRIVE_FOLDER_ID = '1pdBetHvpcgj0VjrhHWUXijWVX3VjwEhW';
 const DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1pdBetHvpcgj0VjrhHWUXijWVX3VjwEhW';
+// El token de acceso de Google se guarda en sessionStorage (se borra al cerrar la
+// pestaña) en lugar de localStorage, para reducir su exposición ante XSS.
+const tokenStore = window.sessionStorage;
 
 // ── STATE ────────────────────────────────────────────────────────
 let trips = [];
@@ -739,14 +766,17 @@ function init(){
   });
   trips.push(newTrip());
   render();
+  // Migración: borrar cualquier token heredado que quedara en localStorage
+  // (antes se guardaba ahí; ahora vive solo en sessionStorage).
+  ['drive_token','drive_token_expiry','drive_email'].forEach(k => localStorage.removeItem(k));
   // Restore drive token from sessionStorage
-  const saved = localStorage.getItem('drive_token');
-  const expiry = parseInt(localStorage.getItem('drive_token_expiry') || '0');
+  const saved = tokenStore.getItem('drive_token');
+  const expiry = parseInt(tokenStore.getItem('drive_token_expiry') || '0');
   if(saved && Date.now() < expiry){
     driveToken = saved;
-    driveUserEmail = localStorage.getItem('drive_email') || '';
+    driveUserEmail = tokenStore.getItem('drive_email') || '';
   } else if(saved) {
-    localStorage.removeItem('drive_token');
+    tokenStore.removeItem('drive_token');
   }
   updateDriveUI();
 }
@@ -801,10 +831,15 @@ function renderTripCard(trip, idx){
 
   const drop = document.createElement('div');
   drop.className = 'drop' + (trip.imageDataUrl ? ' has-image' : '');
+  drop.setAttribute('role', 'button');
+  drop.setAttribute('tabindex', '0');
+  drop.setAttribute('aria-label', `Subir captura del viaje ${idx+1}`);
   drop.onclick = () => input.click();
+  drop.onkeydown = (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); input.click(); } };
   if(trip.imageDataUrl){
     const img = document.createElement('img');
     img.src = trip.imageDataUrl;
+    img.alt = `Captura del viaje ${idx+1}`;
     drop.appendChild(img);
   } else {
     drop.textContent = 'Toca para subir la captura de la app de transporte';
@@ -843,22 +878,28 @@ function renderTripCard(trip, idx){
   fields.appendChild(makeTripField('Punto de destino', trip.fields, 'destino', trip));
   fields.appendChild(makeTripField('Motivo', trip.fields, 'motivo', trip));
   fields.appendChild(makeTripField('App / Modelo', trip.fields, 'modelo', trip));
-  const importeF = makeTripField('Importe (S/)', trip.fields, 'importe', trip, 'ej. 18.50');
+  fields.appendChild(makeTripField('Tipo de vehículo', trip.fields, 'tipoEquipo', trip, 'ej. Auto'));
+  fields.appendChild(makeTripField('Hora', trip.fields, 'hora', trip, 'ej. 02:27 PM'));
+  const importeF = makeTripField('Importe (S/)', trip.fields, 'importe', trip, 'ej. 18.50', 'decimal');
   importeF.classList.add('full');
   fields.appendChild(importeF);
   card.appendChild(fields);
   return card;
 }
 
-function makeTripField(labelText, obj, key, trip, placeholder){
+function makeTripField(labelText, obj, key, trip, placeholder, inputmode){
   const wrap = document.createElement('div');
   wrap.className = 'field-trip';
+  const fieldId = `f-${trip.id}-${key}`;
   const label = document.createElement('label');
   label.textContent = labelText;
+  label.htmlFor = fieldId;
   const input = document.createElement('input');
   input.type = 'text';
+  input.id = fieldId;
   input.value = obj[key] || '';
   if(placeholder) input.placeholder = placeholder;
+  if(inputmode) input.inputMode = inputmode;
   input.oninput = (e) => { obj[key] = e.target.value; updateExportState(); };
   wrap.appendChild(label);
   wrap.appendChild(input);
@@ -961,7 +1002,7 @@ function isAddressLike(s){
   // Descartar líneas que son solo números, horas, porcentajes, íconos
   if(/^[\d\s\.\,\%\$\:\-\/\+]+$/.test(s)) return false;
   // Descartar palabras clave de UI
-  if(/^(viaje|completado|recibo|soporte|tarifa|total|duración|distancia|km|min|pago|pagado|calificaste|repetir|ruta|regreso|google|blanco|plata|negro|rojo|azul|driver|conductor|el conductor|me cobraron|mi conductor|ver m[aá]s)\b/i.test(s)) return false;
+  if(/^(viaje|completado|recibo|soporte|tarifa|total|subtotal|duración|distancia|km|min|pago|pagado|efectivo|propina|descuento|cargo|c[oó]digo|m[eé]todo|estado|fecha|hora|detalle|resumen|recibido|gracias|calificaste|calificaci[oó]n|repetir|ruta|regreso|placa|google|blanco|plata|negro|rojo|azul|driver|conductor|el conductor|me cobraron|mi conductor|ver m[aá]s)\b/i.test(s)) return false;
   // Descartar líneas muy genéricas de solo 1 palabra corta sin número
   if(!/\d/.test(s) && s.split(' ').length === 1 && s.length < 8) return false;
   return true;
@@ -999,6 +1040,11 @@ function cleanResult(result){
     if(typeof result[k] === 'string'){
       result[k] = cleanField(result[k], k === 'origen' || k === 'destino');
     }
+  }
+  // El OCR a veces repite la misma línea como origen y destino: descartar el duplicado
+  if(result.origen && result.destino &&
+     result.origen.toLowerCase() === result.destino.toLowerCase()){
+    delete result.destino;
   }
   return result;
 }
@@ -1484,9 +1530,9 @@ function driveConnect(){
     return;
   }
   // Token expiry check
-  const expiry = parseInt(localStorage.getItem('drive_token_expiry') || '0');
+  const expiry = parseInt(tokenStore.getItem('drive_token_expiry') || '0');
   if(Date.now() > expiry){
-    localStorage.removeItem('drive_token');
+    tokenStore.removeItem('drive_token');
     driveToken = null;
   }
   const client = getGisTokenClient(clientId);
@@ -1495,9 +1541,9 @@ function driveConnect(){
 
 function driveDisconnect(){
   driveToken = null; driveUserEmail = '';
-  localStorage.removeItem('drive_token');
-  localStorage.removeItem('drive_email');
-  localStorage.removeItem('drive_token_expiry');
+  tokenStore.removeItem('drive_token');
+  tokenStore.removeItem('drive_email');
+  tokenStore.removeItem('drive_token_expiry');
   updateDriveUI();
 }
 
@@ -1532,16 +1578,16 @@ function updateDriveUI(){
 function onDriveTokenReceived(token, expiresIn){
   if(!token) return;
   driveToken = token;
-  localStorage.setItem('drive_token', token);
+  tokenStore.setItem('drive_token', token);
   if(expiresIn){
-    localStorage.setItem('drive_token_expiry', String(Date.now() + parseInt(expiresIn)*1000 - 60000));
+    tokenStore.setItem('drive_token_expiry', String(Date.now() + parseInt(expiresIn)*1000 - 60000));
   }
   // Fetch user info
   fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: 'Bearer ' + token }
   }).then(r => r.json()).then(info => {
     driveUserEmail = info.email || '';
-    localStorage.setItem('drive_email', driveUserEmail);
+    tokenStore.setItem('drive_email', driveUserEmail);
     updateDriveUI();
     showToast('✓ Conectado a Google Drive como ' + driveUserEmail);
   }).catch(() => updateDriveUI());
@@ -1586,7 +1632,7 @@ async function uploadToDrive(){
 
   try {
     // Check token expiry
-    const expiry = parseInt(localStorage.getItem('drive_token_expiry') || '0');
+    const expiry = parseInt(tokenStore.getItem('drive_token_expiry') || '0');
     if(Date.now() > expiry){ throw new Error('TOKEN_EXPIRED'); }
 
     const blob = await generateExcel(true);
@@ -1622,7 +1668,7 @@ async function uploadToDrive(){
 
     // ── Success: show toast and open folder ──
     showToast('✓ ' + fileName + ' guardado en Drive');
-    setTimeout(() => window.open(DRIVE_FOLDER_URL, '_blank'), 800);
+    setTimeout(() => window.open(DRIVE_FOLDER_URL, '_blank', 'noopener'), 800);
 
   } catch(e){
     console.error('uploadToDrive error:', e);
@@ -1861,6 +1907,14 @@ window.addEventListener('appinstalled', () => {
   document.getElementById('pwa-banner').style.display = 'none';
   showToast('✓ App instalada en pantalla de inicio');
 });
+
+// ── Service Worker (offline / PWA) ──
+// Solo funciona sobre http(s); en file:// se ignora silenciosamente.
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW no registrado:', err));
+  });
+}
 
 init();
 
