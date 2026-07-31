@@ -43,6 +43,7 @@ document.currentScript.parentNode.insertBefore(link, document.currentScript);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0/dist/umd/supabase.min.js"></script>
 <style>
 :root {
   --bg:        #131313;
@@ -698,7 +699,7 @@ h1 {
     <div class="export-inner">
       <div class="export-row">
         <button class="export-btn" id="export-btn" type="button" disabled>↓ Descargar Excel</button>
-        <button class="export-btn" id="sol-export-btn" type="button" disabled>↗ Exportar a Sol</button>
+        <button class="export-btn" id="sol-export-btn" type="button" disabled>↗ Guardar para Sol</button>
         <button class="drive-upload-btn" id="drive-upload-btn" type="button" disabled onclick="uploadToDrive()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Drive
@@ -1466,7 +1467,7 @@ document.getElementById('add-trip-btn').onclick = () => {
   if(trips.length < MAX_TRIPS){ trips.push(newTrip()); render(); }
 };
 document.getElementById('export-btn').onclick = () => generateExcel(false);
-document.getElementById('sol-export-btn').onclick = exportToSol;
+document.getElementById('sol-export-btn').onclick = saveToSol;
 
 function tripDateForSol(dateText, timeText){
   const match = String(dateText || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
@@ -1484,36 +1485,66 @@ function tripDateForSol(dateText, timeText){
   return date.toISOString();
 }
 
-function exportToSol(){
+let solClient = null;
+
+async function getSolClient(){
+  if(solClient) return solClient;
+  const response = await fetch('https://sol-gastos-privado.vercel.app/api/runner-config');
+  if(!response.ok) throw new Error('No se pudo conectar con Sol');
+  const config = await response.json();
+  solClient = window.supabase.createClient(config.url, config.key);
+  return solClient;
+}
+
+async function getSolSession(client){
+  const { data } = await client.auth.getSession();
+  if(data.session) return data.session;
+  const email = window.prompt('Correo de tu cuenta de Sol:');
+  if(!email) return null;
+  const password = window.prompt('Contraseña de tu cuenta de Sol:');
+  if(!password) return null;
+  const { data: signedIn, error } = await client.auth.signInWithPassword({ email:email.trim(), password });
+  if(error) throw new Error('No se pudo iniciar sesión en Sol: ' + error.message);
+  return signedIn.session;
+}
+
+async function saveToSol(){
   const dateText = document.getElementById('meta-fecha').value.trim();
   const exportTrips = trips
     .filter(trip => trip.imageDataUrl && Number(trip.fields.importe) > 0)
     .map(trip => ({
-      id: trip.id,
+      runner_trip_id: trip.id,
       amount: Number(Number(trip.fields.importe).toFixed(2)),
-      date: tripDateForSol(dateText, trip.fields.hora),
+      trip_date: tripDateForSol(dateText, trip.fields.hora),
       origin: trip.fields.origen || '',
       destination: trip.fields.destino || '',
       reason: trip.fields.motivo || 'Movilidad',
       platform: trip.fields.modelo || PLATFORMS.find(item => item.key === trip.platform)?.label || '',
       vehicle: trip.fields.tipoEquipo || '',
-      time: trip.fields.hora || '',
+      trip_time: trip.fields.hora || '',
     }));
   if(!exportTrips.length){
     showToast('Completa el importe de al menos un viaje', true);
     return;
   }
-  const payload = { format:'runner-sol', version:1, exportedAt:new Date().toISOString(), trips:exportTrips };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `Runner_Sol_${dateText.replace(/\//g, '-') || 'viajes'}.json`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-  showToast(`✓ ${exportTrips.length} viaje(s) listos para importar en Sol`);
+  const button = document.getElementById('sol-export-btn');
+  button.disabled = true;
+  button.textContent = 'Conectando con Sol...';
+  try {
+    const client = await getSolClient();
+    const session = await getSolSession(client);
+    if(!session) return;
+    const rows = exportTrips.map(trip => ({ ...trip, user_id:session.user.id }));
+    const { error } = await client.from('runner_trips').upsert(rows, { onConflict:'user_id,runner_trip_id' });
+    if(error) throw error;
+    showToast(`✓ ${rows.length} viaje(s) guardados para importar en Sol`);
+  } catch(error){
+    console.error(error);
+    showToast(error.message || 'No se pudo guardar en Sol', true);
+  } finally {
+    button.textContent = '↗ Guardar para Sol';
+    updateExportState();
+  }
 }
 
 // ── GOOGLE DRIVE ─────────────────────────────────────────────────
