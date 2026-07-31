@@ -739,6 +739,7 @@ function newTrip(){
     status: 'idle',
     error: null,
     ocrProgress: 0,
+    ocrConfidence: null,
     platform: 'auto',
     ocrRawText: null,
     fields: { origen:'', destino:'', motivo:'Movilidad', tipoEquipo:'', modelo:'', hora:'', importe:'' }
@@ -864,7 +865,8 @@ function renderTripCard(trip, idx){
   if(trip.status === 'done'){
     const row = document.createElement('div');
     row.className = 'status-row';
-    row.className = 'status-row success'; row.innerHTML = '<span>✓</span><span>Datos extraídos — revisa y corrige si es necesario</span>';
+    const confidence = Number.isFinite(trip.ocrConfidence) ? ` · confianza ${Math.round(trip.ocrConfidence)}%` : '';
+    row.className = 'status-row success'; row.innerHTML = `<span>✓</span><span>Datos extraídos${confidence} — revisa y corrige si es necesario</span>`;
     card.appendChild(row);
   }
   if(trip.status === 'error'){
@@ -920,6 +922,7 @@ function handleFile(trip, file){
     trip.status = 'loading';
     trip.error = null;
     trip.ocrProgress = 0;
+    trip.ocrConfidence = null;
     trip.ocrRawText = null;
     render();
     await extractWithOCR(trip);
@@ -960,23 +963,56 @@ function parseByPlatform(text, platform){
 }
 
 // ── LOCAL OCR (TESSERACT) ────────────────────────────────────────
-async function extractWithOCR(trip){
-  try {
-    const worker = await Tesseract.createWorker('spa+eng', 1, {
-      logger: m => {
-        if(m.status === 'recognizing text'){
-          trip.ocrProgress = Math.round(m.progress * 100);
-          // Update progress bar without full re-render
-          const bars = document.querySelectorAll('.ocr-progress-bar');
-          bars.forEach(b => b.style.width = trip.ocrProgress + '%');
+let ocrWorkerPromise = null;
+let ocrQueue = Promise.resolve();
+let activeOcrTrip = null;
+
+function getOcrWorker(){
+  if(!ocrWorkerPromise){
+    ocrWorkerPromise = Tesseract.createWorker('spa+eng', 1, {
+      logger: message => {
+        if(message.status === 'recognizing text' && activeOcrTrip){
+          activeOcrTrip.ocrProgress = Math.round((message.progress || 0) * 100);
+          document.querySelectorAll('.ocr-progress-bar').forEach(bar => {
+            bar.style.width = activeOcrTrip.ocrProgress + '%';
+          });
         }
       }
     });
+  }
+  return ocrWorkerPromise;
+}
 
-    const { data: { text } } = await worker.recognize(trip.imageDataUrl);
-    await worker.terminate();
+async function preprocessForOcr(dataUrl){
+  const image = new Image();
+  image.src = dataUrl;
+  await image.decode();
+  const scale = Math.min(2.5, Math.max(1.25, 1600 / Math.max(image.width, 1)));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(image.width * scale);
+  canvas.height = Math.round(image.height * scale);
+  const ctx = canvas.getContext('2d', { willReadFrequently:true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  for(let i = 0; i < pixels.data.length; i += 4){
+    const gray = 0.299 * pixels.data[i] + 0.587 * pixels.data[i + 1] + 0.114 * pixels.data[i + 2];
+    const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128));
+    pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = contrasted;
+  }
+  ctx.putImageData(pixels, 0, 0);
+  return canvas;
+}
+
+async function runOcr(trip){
+  try {
+    activeOcrTrip = trip;
+    const [worker, preparedImage] = await Promise.all([getOcrWorker(), preprocessForOcr(trip.imageDataUrl)]);
+    const { data: { text, confidence } } = await worker.recognize(preparedImage);
 
     trip.ocrRawText = text;
+    trip.ocrConfidence = confidence;
     const parsed = parseByPlatform(text, trip.platform || 'auto');
     applyParsedFields(trip, parsed);
 
@@ -987,7 +1023,15 @@ async function extractWithOCR(trip){
     console.error(e);
     trip.status = 'error';
     trip.error = 'Error en OCR local: ' + e.message + '. Completa los campos manualmente.';
+  } finally {
+    activeOcrTrip = null;
   }
+}
+
+function extractWithOCR(trip){
+  const job = ocrQueue.then(() => runOcr(trip));
+  ocrQueue = job.catch(() => {});
+  return job;
 }
 
 // ── HELPERS COMPARTIDOS ENTRE PARSERS ─────────────────────────────
