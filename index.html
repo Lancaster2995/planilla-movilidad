@@ -698,6 +698,7 @@ h1 {
     <div class="export-inner">
       <div class="export-row">
         <button class="export-btn" id="export-btn" type="button" disabled>↓ Descargar Excel</button>
+        <button class="export-btn" id="sol-export-btn" type="button" disabled>↗ Exportar a Sol</button>
         <button class="drive-upload-btn" id="drive-upload-btn" type="button" disabled onclick="uploadToDrive()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Drive
@@ -1444,11 +1445,13 @@ function parseUberText(text){
 // ── EXPORT STATE ─────────────────────────────────────────────────
 function updateExportState(){
   const btn = document.getElementById('export-btn');
+  const solBtn = document.getElementById('sol-export-btn');
   const drBtn = document.getElementById('drive-upload-btn');
   const note = document.getElementById('export-note');
   const anyImage = trips.some(t => t.imageDataUrl);
   const anyLoading = trips.some(t => t.status === 'loading');
   btn.disabled = !anyImage || anyLoading;
+  solBtn.disabled = !anyImage || anyLoading;
   drBtn.disabled = !anyImage || anyLoading;
   if(anyLoading){
     note.textContent = 'Esperando a que termine el OCR...';
@@ -1463,6 +1466,55 @@ document.getElementById('add-trip-btn').onclick = () => {
   if(trips.length < MAX_TRIPS){ trips.push(newTrip()); render(); }
 };
 document.getElementById('export-btn').onclick = () => generateExcel(false);
+document.getElementById('sol-export-btn').onclick = exportToSol;
+
+function tripDateForSol(dateText, timeText){
+  const match = String(dateText || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const date = match
+    ? new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]), 12, 0, 0)
+    : new Date();
+  const time = String(timeText || '').match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if(time){
+    let hour = Number(time[1]);
+    const meridiem = (time[3] || '').toUpperCase();
+    if(meridiem === 'PM' && hour < 12) hour += 12;
+    if(meridiem === 'AM' && hour === 12) hour = 0;
+    if(hour < 24 && Number(time[2]) < 60) date.setHours(hour, Number(time[2]), 0, 0);
+  }
+  return date.toISOString();
+}
+
+function exportToSol(){
+  const dateText = document.getElementById('meta-fecha').value.trim();
+  const exportTrips = trips
+    .filter(trip => trip.imageDataUrl && Number(trip.fields.importe) > 0)
+    .map(trip => ({
+      id: trip.id,
+      amount: Number(Number(trip.fields.importe).toFixed(2)),
+      date: tripDateForSol(dateText, trip.fields.hora),
+      origin: trip.fields.origen || '',
+      destination: trip.fields.destino || '',
+      reason: trip.fields.motivo || 'Movilidad',
+      platform: trip.fields.modelo || PLATFORMS.find(item => item.key === trip.platform)?.label || '',
+      vehicle: trip.fields.tipoEquipo || '',
+      time: trip.fields.hora || '',
+    }));
+  if(!exportTrips.length){
+    showToast('Completa el importe de al menos un viaje', true);
+    return;
+  }
+  const payload = { format:'runner-sol', version:1, exportedAt:new Date().toISOString(), trips:exportTrips };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Runner_Sol_${dateText.replace(/\//g, '-') || 'viajes'}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast(`✓ ${exportTrips.length} viaje(s) listos para importar en Sol`);
+}
 
 // ── GOOGLE DRIVE ─────────────────────────────────────────────────
 
