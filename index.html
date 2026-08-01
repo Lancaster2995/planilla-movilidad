@@ -1150,7 +1150,10 @@ async function extractWithCloudOcr(trip){
   try {
     const client = await getSolClient();
     const session = await getSolSession(client);
-    if(!session) return false;
+    if(!session){
+      showToast('Inicia sesión con tu cuenta de Sol para usar el OCR inteligente', true);
+      return false;
+    }
     const form = new FormData();
     form.append('image', dataUrlToBlob(trip.imageDataUrl), 'captura.jpg');
     form.append('platform', trip.platform || 'auto');
@@ -1171,7 +1174,8 @@ async function extractWithCloudOcr(trip){
     return true;
   } catch(error){
     console.error('Cloud OCR failed; using local fallback', error);
-    showToast('OCR inteligente no disponible; usando lectura local', true);
+    const detail = error?.message || 'OCR inteligente no disponible';
+    showToast(detail + '; usando lectura local', true);
     return false;
   }
 }
@@ -1691,7 +1695,7 @@ async function getSolClient(){
 async function getSolSession(client){
   const { data } = await client.auth.getSession();
   if(data.session) return data.session;
-  const email = window.prompt('Correo de tu cuenta de Sol:');
+  const email = window.prompt('Correo de tu cuenta de Sol (no es tu cuenta de OpenAI):');
   if(!email) return null;
   const password = window.prompt('Contraseña de tu cuenta de Sol:');
   if(!password) return null;
