@@ -1026,7 +1026,8 @@ function handleFile(trip, file){
     trip.ocrProvider = null;
     trip.ocrRawText = null;
     render();
-    await extractSmartOcr(trip);
+    trip.ocrProvider = 'local';
+    await extractWithOCR(trip);
     render();
   };
   reader.readAsDataURL(file);
@@ -1036,7 +1037,7 @@ function handleFile(trip, file){
 // Si ya hay texto OCR guardado, re-parsea al instante sin volver a correr Tesseract.
 function setTripPlatform(trip, platform){
   trip.platform = platform;
-  if(trip.ocrRawText && trip.ocrProvider !== 'cloud'){
+  if(trip.ocrRawText){
     const parsed = parseByPlatform(trip.ocrRawText, platform);
     applyParsedFields(trip, parsed);
     trip.status = (parsed.importe || parsed.origen) ? 'done' : 'error';
@@ -1084,12 +1085,12 @@ function getOcrWorker(){
   return ocrWorkerPromise;
 }
 
-async function preprocessForOcr(dataUrl){
+async function preprocessForOcr(dataUrl, thresholded = false){
   const image = new Image();
   image.src = dataUrl;
   await image.decode();
-  const desiredScale = Math.min(2.2, Math.max(1.15, 1500 / Math.max(image.width, 1)));
-  const memorySafeScale = Math.sqrt(4_500_000 / Math.max(image.width * image.height, 1));
+  const desiredScale = Math.min(2.4, Math.max(1.2, 1800 / Math.max(image.width, 1)));
+  const memorySafeScale = Math.sqrt(7_000_000 / Math.max(image.width * image.height, 1));
   const scale = Math.max(.65, Math.min(desiredScale, memorySafeScale));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(image.width * scale);
@@ -1101,8 +1102,9 @@ async function preprocessForOcr(dataUrl){
   const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
   for(let i = 0; i < pixels.data.length; i += 4){
     const gray = 0.299 * pixels.data[i] + 0.587 * pixels.data[i + 1] + 0.114 * pixels.data[i + 2];
-    const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128));
-    pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = contrasted;
+    const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.55 + 128));
+    const value = thresholded ? (contrasted < 175 ? 0 : 255) : contrasted;
+    pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = value;
   }
   ctx.putImageData(pixels, 0, 0);
   return canvas;
@@ -1112,11 +1114,31 @@ async function runOcr(trip){
   try {
     activeOcrTrip = trip;
     const [worker, preparedImage] = await Promise.all([getOcrWorker(), preprocessForOcr(trip.imageDataUrl)]);
-    const { data: { text, confidence } } = await worker.recognize(preparedImage);
+    const first = (await worker.recognize(preparedImage)).data;
+    const firstParsed = parseByPlatform(first.text, trip.platform || 'auto');
+    let text = first.text;
+    let confidence = first.confidence;
+    let parsed = firstParsed;
+
+    const incomplete = !firstParsed.importe || !firstParsed.origen || !firstParsed.destino;
+    if(incomplete || first.confidence < 82){
+      trip.ocrProgress = 55;
+      const thresholdedImage = await preprocessForOcr(trip.imageDataUrl, true);
+      const second = (await worker.recognize(thresholdedImage)).data;
+      const secondParsed = parseByPlatform(second.text, trip.platform || 'auto');
+      const merged = { ...firstParsed };
+      for(const key of ['importe','origen','destino','hora','modelo','tipoEquipo']){
+        if(!merged[key] && secondParsed[key]) merged[key] = secondParsed[key];
+      }
+      const score = value => ['importe','origen','destino'].reduce((total, key) => total + (value[key] ? 2 : 0), 0)
+        + ['hora','modelo','tipoEquipo'].reduce((total, key) => total + (value[key] ? 1 : 0), 0);
+      if(score(secondParsed) > score(firstParsed)) text = second.text;
+      confidence = Math.max(first.confidence, second.confidence);
+      parsed = merged;
+    }
 
     trip.ocrRawText = text;
     trip.ocrConfidence = confidence;
-    const parsed = parseByPlatform(text, trip.platform || 'auto');
     applyParsedFields(trip, parsed);
 
     trip.status = (parsed.importe || parsed.origen) ? 'done' : 'error';
@@ -1135,55 +1157,6 @@ function extractWithOCR(trip){
   const job = ocrQueue.then(() => runOcr(trip));
   ocrQueue = job.catch(() => {});
   return job;
-}
-
-function dataUrlToBlob(dataUrl){
-  const [meta, encoded] = dataUrl.split(',');
-  const mediaType = meta.match(/data:(.*);base64/)?.[1] || 'image/jpeg';
-  const binary = atob(encoded);
-  const bytes = new Uint8Array(binary.length);
-  for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type:mediaType });
-}
-
-async function extractWithCloudOcr(trip){
-  try {
-    const client = await getSolClient();
-    const session = await getSolSession(client);
-    if(!session){
-      showToast('Inicia sesión con tu cuenta de Sol para usar el OCR inteligente', true);
-      return false;
-    }
-    const form = new FormData();
-    form.append('image', dataUrlToBlob(trip.imageDataUrl), 'captura.jpg');
-    form.append('platform', trip.platform || 'auto');
-    const response = await fetch('https://sol-gastos-privado.vercel.app/api/runner-ocr', {
-      method:'POST',
-      headers:{ Authorization:'Bearer ' + session.access_token },
-      body:form,
-    });
-    const payload = await response.json();
-    if(!response.ok || !payload.result) throw new Error(payload.error || 'OCR inteligente no disponible');
-    const parsed = cleanResult(payload.result);
-    applyParsedFields(trip, parsed);
-    trip.ocrRawText = null;
-    trip.ocrProvider = 'cloud';
-    trip.ocrProgress = 100;
-    trip.status = (parsed.importe || parsed.origen) ? 'done' : 'error';
-    if(trip.status === 'error') trip.error = 'El OCR inteligente no encontró datos claros. Completa los campos manualmente.';
-    return true;
-  } catch(error){
-    console.error('Cloud OCR failed; using local fallback', error);
-    const detail = error?.message || 'OCR inteligente no disponible';
-    showToast(detail + '; usando lectura local', true);
-    return false;
-  }
-}
-
-async function extractSmartOcr(trip){
-  if(await extractWithCloudOcr(trip)) return;
-  trip.ocrProvider = 'local';
-  await extractWithOCR(trip);
 }
 
 // ── HELPERS COMPARTIDOS ENTRE PARSERS ─────────────────────────────
@@ -1347,13 +1320,13 @@ function parseOcrText(text){
     result.origen = stripTrailingTime(timeTagged[0]);
   }
 
-  // Estrategia 2: buscar el par de líneas justo después de "Viaje · Completado" o "Viaje en la ciudad"
+  // Estrategia 2: buscar el par de lugares después del encabezado del viaje.
   if(!result.origen){
     for(let i = 0; i < lines.length; i++){
-      if(/viaje\s*[·•\-]?\s*completado|viaje\s+en\s+la\s+ciudad/i.test(lines[i])){
+      if(/viaje\s*[·•\-]?\s*(?:completado|finalizado)|viaje\s+en\s+la\s+ciudad|detalles?\s+del\s+viaje/i.test(lines[i])){
         // Las dos siguientes líneas de texto que no sean hora/ícono suelen ser origen y destino
         let found = 0;
-        for(let j = i+1; j < Math.min(i+6, lines.length); j++){
+        for(let j = i+1; j < Math.min(i+10, lines.length); j++){
           const clean = stripTrailingTime(lines[j]);
           if(isAddressLike(clean)){
             if(found === 0) result.origen  = clean;
