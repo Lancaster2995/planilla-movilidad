@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Runner — Planilla de Movilidad</title>
+<meta name="theme-color" content="#edf4f8" id="theme-color-meta">
+<script>
+try {
+  const savedTheme = localStorage.getItem('runner-theme');
+  const preferredTheme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.dataset.theme = savedTheme || preferredTheme;
+} catch (_) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -55,9 +63,9 @@ document.currentScript.parentNode.insertBefore(link, document.currentScript);
   --text:      #f5f5f5;
   --text2:     #b0b0b0;
   --text3:     #767676;
-  --accent:    #fe6914;
-  --accent2:   #e85a0c;
-  --accent-glow: rgba(254,105,20,.18);
+  --accent:    #286b91;
+  --accent2:   #173146;
+  --accent-glow: rgba(40,107,145,.18);
   --green:     #34c77b;
   --green-dim: rgba(52,199,123,.12);
   --red:       #ff5c5c;
@@ -218,12 +226,12 @@ h1 {
   white-space: nowrap;
 }
 .btn-drive.connect {
-  background: rgba(254,105,20,.15);
+  background: rgba(40,107,145,.15);
   color: var(--accent);
-  border: 1px solid rgba(254,105,20,.3);
+  border: 1px solid rgba(40,107,145,.3);
 }
 .btn-drive.connect:hover {
-  background: rgba(254,105,20,.25);
+  background: rgba(40,107,145,.25);
   border-color: var(--accent);
 }
 .btn-drive.disconnect {
@@ -488,7 +496,7 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   font-family: var(--sans);
-  box-shadow: 0 4px 20px rgba(254,105,20,.35);
+  box-shadow: 0 4px 20px rgba(40,107,145,.35);
   transition: all .15s;
   letter-spacing: .01em;
 }
@@ -535,7 +543,7 @@ h1 {
   display: flex; align-items: center; justify-content: center;
   padding: 0; font-size: 15px;
 }
-.btn-drive.setup:hover { color: var(--accent); border-color: rgba(254,105,20,.4); background: var(--accent-glow); }
+.btn-drive.setup:hover { color: var(--accent); border-color: rgba(40,107,145,.4); background: var(--accent-glow); }
 #setup-modal { display: none; }
 #setup-modal.open { display: flex; }
 .note {
@@ -585,25 +593,32 @@ h1 {
 
 /* ── RUNNER 2.0 · interfaz clara y táctil ── */
 :root {
-  --bg:#f3f6f9; --surface:#ffffff; --surface2:#f6f8fa; --surface3:#e9eef2;
-  --border:#dfe6eb; --border2:#cbd6de; --text:#172b3a; --text2:#5e7180;
-  --text3:#8796a1; --accent:#f26322; --accent2:#e84d12;
-  --accent-glow:rgba(242,99,34,.14); --green:#16875c; --green-dim:#e7f6ef;
+  color-scheme:light;
+  --bg:#edf4f8; --surface:#ffffff; --surface2:#f3f7fa; --surface3:#dfeaf1;
+  --border:#d6e2e9; --border2:#b9ccd8; --text:#132b3a; --text2:#587181;
+  --text3:#8096a4; --accent:#286b91; --accent2:#173146;
+  --accent-glow:rgba(40,107,145,.14); --green:#16875c; --green-dim:#e7f6ef;
   --red:#cf3d3d; --red-dim:#fff0f0; --radius:20px; --radius-sm:13px;
+  --shadow:rgba(23,49,70,.10); --page-glow:rgba(74,139,176,.18);
 }
-body { background:radial-gradient(circle at 90% 0%,#fff0e8 0,transparent 28%),var(--bg); color:var(--text); }
+[data-theme="dark"] {
+  color-scheme:dark;
+  --bg:#07141d; --surface:#0e2230; --surface2:#122a39; --surface3:#193746;
+  --border:#203d4d; --border2:#315668; --text:#edf6fa; --text2:#a9bfcb;
+  --text3:#73909f; --accent:#62a8cf; --accent2:#9cc9e1;
+  --accent-glow:rgba(98,168,207,.17); --green:#65d0a7; --green-dim:#11372f;
+  --red:#ff8383; --red-dim:#3a1b21; --shadow:rgba(0,0,0,.32); --page-glow:rgba(55,129,169,.22);
+}
+body { background:radial-gradient(circle at 88% -4%,var(--page-glow) 0,transparent 34%),var(--bg); color:var(--text); transition:background .25s,color .25s; }
 .wrap { max-width:880px; padding-top:calc(22px + env(safe-area-inset-top)); }
-.app-header { border:0; padding:4px 2px 12px; margin-bottom:12px; }
-.header-logo img { width:52px; height:52px; border-radius:15px; box-shadow:0 10px 25px #17314620; }
-h1 { color:#173146; font-size:28px; font-weight:800; letter-spacing:-.04em; }
-.intro-card { background:linear-gradient(135deg,#173146 0%,#244b63 100%); color:#fff; border-radius:26px; padding:24px; margin-bottom:18px; box-shadow:0 18px 42px #17314624; overflow:hidden; position:relative; }
-.intro-card::after { content:''; position:absolute; width:180px; height:180px; right:-70px; top:-80px; border-radius:50%; background:#f2632238; }
-.intro-card h2 { font-size:24px; line-height:1.15; letter-spacing:-.035em; margin-bottom:8px; position:relative; z-index:1; }
-.intro-card > p { color:#d8e3e9; font-size:13px; margin-bottom:18px; position:relative; z-index:1; }
-.flow-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; position:relative; z-index:1; }
-.flow-step { display:flex; align-items:center; gap:8px; padding:10px; border:1px solid #ffffff24; background:#ffffff0f; border-radius:14px; font-size:12px; color:#e8f0f4; }
-.flow-step b { display:grid; place-items:center; flex:none; width:25px; height:25px; border-radius:9px; background:#f26322; color:#fff; }
-.card,.trip-card,.drive-bar { background:var(--surface); border-color:var(--border); box-shadow:0 8px 24px #1731460b; }
+.app-header { border:0; padding:4px 2px 12px; margin-bottom:12px; align-items:center; }
+.header-logo img { width:52px; height:52px; border-radius:15px; box-shadow:0 10px 25px var(--shadow); }
+h1 { color:var(--text); font-size:28px; font-weight:800; letter-spacing:-.04em; }
+.theme-toggle { margin-left:auto; width:46px; height:46px; min-height:46px; border:1px solid var(--border); border-radius:15px; background:var(--surface); color:var(--accent); display:grid; place-items:center; font-size:20px; box-shadow:0 8px 22px var(--shadow); cursor:pointer; }
+.theme-toggle:hover { border-color:var(--accent); background:var(--accent-glow); }
+.theme-toggle:focus { outline:none; }
+.theme-toggle:focus-visible { outline:3px solid var(--accent-glow); border-color:var(--accent); }
+.card,.trip-card,.drive-bar { background:var(--surface); border-color:var(--border); box-shadow:0 8px 24px var(--shadow); }
 .card:hover,.trip-card:hover { border-color:var(--border2); }
 .section-title { color:#6b7e8b; justify-content:flex-start; font-size:12px; letter-spacing:.04em; margin:22px 2px 10px; }
 .section-title::before { display:none; }
@@ -612,37 +627,35 @@ h1 { color:#173146; font-size:28px; font-weight:800; letter-spacing:-.04em; }
 .drive-status { color:var(--text); }
 .field input,.field-trip input { background:#f7f9fb; color:var(--text); border-color:var(--border); min-height:48px; font-size:16px; }
 .trip-card { border-radius:24px; padding:18px; }
-.trip-num { color:#173146; font-size:13px; }
+.trip-num { color:var(--text); font-size:13px; }
 .trip-num::before { width:8px; height:8px; background:var(--accent); border-radius:50%; }
-.platform-btn { min-height:44px; background:#f5f7f9; border-color:var(--border); color:#607482; }
-.platform-btn.active { background:#fff2eb; color:#d94f14; border-color:#f26322; }
-.drop { min-height:130px; display:grid; place-content:center; background:#f7f9fb; border:2px dashed #c6d2da; color:#687c89; border-radius:17px; font-size:14px; }
-.drop::before { content:'＋'; display:grid; place-items:center; width:42px; height:42px; margin:0 auto 9px; border-radius:14px; background:#fff0e8; color:#f26322; font-size:25px; font-weight:400; opacity:1; }
-.drop.has-image { display:block; min-height:0; background:#edf1f4; }
-.status-row { background:#f3f6f8; color:#617481; }
+.platform-btn { min-height:44px; background:var(--surface2); border-color:var(--border); color:var(--text2); }
+.platform-btn.active { background:var(--accent-glow); color:var(--accent); border-color:var(--accent); }
+.drop { min-height:130px; display:grid; place-content:center; background:var(--surface2); border:2px dashed var(--border2); color:var(--text2); border-radius:17px; font-size:14px; }
+.drop::before { content:'＋'; display:grid; place-items:center; width:42px; height:42px; margin:0 auto 9px; border-radius:14px; background:var(--accent-glow); color:var(--accent); font-size:25px; font-weight:400; opacity:1; }
+.drop.has-image { display:block; min-height:0; background:var(--surface3); }
+.status-row { background:var(--surface2); color:var(--text2); }
 .status-row.success { background:var(--green-dim); color:var(--green); }
 .remove-btn { min-height:38px; padding:7px 12px; color:#758692; border-color:var(--border); }
-.add-trip { min-height:52px; border-radius:17px; background:#fff; color:#173146; border-color:#bac9d3; font-weight:700; }
+.add-trip { min-height:52px; border-radius:17px; background:var(--surface); color:var(--accent); border-color:var(--border2); font-weight:700; }
 .export-bar { z-index:50; bottom:calc(10px + env(safe-area-inset-bottom)); }
-.export-inner { background:#ffffffeb; border-color:#d6e0e6; border-radius:22px; padding:12px; box-shadow:0 14px 42px #1731462c; }
-.export-btn { min-height:50px; background:linear-gradient(135deg,#f26322,#e84d12); border-radius:14px; box-shadow:0 7px 18px #f2632235; font-weight:750; }
-#sol-export-btn { background:linear-gradient(135deg,#173146,#244b63); box-shadow:0 7px 18px #17314630; }
+.export-inner { background:color-mix(in srgb,var(--surface) 92%,transparent); border-color:var(--border); border-radius:22px; padding:12px; box-shadow:0 14px 42px var(--shadow); }
+.export-btn { min-height:50px; background:linear-gradient(135deg,var(--accent),#244b63); border-radius:14px; box-shadow:0 7px 18px var(--shadow); font-weight:750; }
+#sol-export-btn { background:linear-gradient(135deg,#173146,#286b91); box-shadow:0 7px 18px var(--shadow); }
 .drive-upload-btn { min-height:50px; border-radius:14px; }
 .note { color:#687b88; }
 button,input,.drop { touch-action:manipulation; }
 button { min-height:44px; }
-#pwa-banner { background:#ffffffed !important; border-color:#dfe6eb !important; box-shadow:0 8px 30px #1731461f !important; }
-#pwa-banner div:first-child { color:#173146 !important; }
-#pwa-banner div:nth-child(2) { color:#627582 !important; }
-#pwa-install-btn { background:linear-gradient(135deg,#f26322,#e84d12) !important; min-height:40px; }
-#setup-modal > div { background:#fff !important; border-color:#dfe6eb !important; color:#173146 !important; }
-#setup-modal > div > div { color:#173146; }
+#pwa-banner { background:color-mix(in srgb,var(--surface) 94%,transparent) !important; border-color:var(--border) !important; box-shadow:0 8px 30px var(--shadow) !important; }
+#pwa-banner div:first-child { color:var(--text) !important; }
+#pwa-banner div:nth-child(2) { color:var(--text2) !important; }
+#pwa-install-btn { background:linear-gradient(135deg,var(--accent),#244b63) !important; min-height:40px; }
+#setup-modal > div { background:var(--surface) !important; border-color:var(--border) !important; color:var(--text) !important; }
+#setup-modal > div > div { color:var(--text); }
+[data-theme="dark"] .field input,[data-theme="dark"] .field-trip input { background:var(--surface2); color:var(--text); border-color:var(--border); }
+[data-theme="dark"] #setup-modal > div div { border-color:var(--border) !important; }
 @media (max-width:640px) {
   .wrap { padding-left:calc(14px + env(safe-area-inset-left)); padding-right:calc(14px + env(safe-area-inset-right)); padding-bottom:calc(132px + env(safe-area-inset-bottom)); }
-  .intro-card { padding:20px; border-radius:22px; }
-  .intro-card h2 { font-size:22px; max-width:270px; }
-  .flow-steps { grid-template-columns:1fr; gap:6px; }
-  .flow-step { padding:8px 10px; }
   .fields,.fields-trip { grid-template-columns:1fr; }
   .field-trip.full,.field.full { grid-column:auto; }
   .trip-card { padding:15px; }
@@ -662,7 +675,7 @@ button { min-height:44px; }
     <div style="font-size:13px;font-weight:600;color:#f5f5f5;">Runner</div>
     <div style="font-size:11.5px;color:#b0b0b0;font-family:monospace;">Agregar a pantalla de inicio</div>
   </div>
-  <button id="pwa-install-btn" style="background:linear-gradient(135deg,#fe6914,#e85a0c);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Instalar</button>
+  <button id="pwa-install-btn" style="background:linear-gradient(135deg,#286b91,#173146);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Instalar</button>
   <button onclick="document.getElementById('pwa-banner').style.display='none'" style="background:none;border:none;color:#b0b0b0;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
 </div>
 
@@ -673,17 +686,8 @@ button { min-height:44px; }
       <img src="data:image/png;base64,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" alt="Runner">
       <h1>Runner</h1>
     </div>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar a tema oscuro" title="Cambiar tema">☾</button>
   </header>
-
-  <section class="intro-card" aria-label="Cómo usar Runner">
-    <h2>Tu movilidad, lista en minutos.</h2>
-    <p>Runner lee la captura, completa la planilla y deja el gasto preparado para Sol.</p>
-    <div class="flow-steps">
-      <div class="flow-step"><b>1</b><span>Sube la captura</span></div>
-      <div class="flow-step"><b>2</b><span>Revisa los datos</span></div>
-      <div class="flow-step"><b>3</b><span>Guarda o exporta</span></div>
-    </div>
-  </section>
 
   <!-- Google Drive -->
   <p class="section-title">Integración Google Drive</p>
@@ -710,28 +714,28 @@ button { min-height:44px; }
   <div id="setup-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px;">
     <div style="background:#232323;border:1px solid #3f3f3f;border-radius:16px;padding:28px;max-width:520px;width:100%;position:relative;max-height:90vh;overflow-y:auto;">
       <button onclick="hideSetupModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:#b0b0b0;font-size:20px;cursor:pointer;line-height:1;">✕</button>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:#fe6914;text-transform:uppercase;margin-bottom:12px;">Configuración · Google OAuth</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:#286b91;text-transform:uppercase;margin-bottom:12px;">Configuración · Google OAuth</div>
       <div style="font-size:18px;font-weight:700;color:#f5f5f5;margin-bottom:8px;">Conectar Google Drive</div>
       <div style="font-size:13px;color:#b0b0b0;margin-bottom:22px;line-height:1.6;">Sigue estos pasos para obtener tu Client ID gratuito y activar la subida automática.</div>
 
       <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:22px;">
         <div style="background:#171717;border:1px solid #2a2a2a;border-radius:10px;padding:14px;display:flex;gap:12px;">
-          <div style="width:24px;height:24px;border-radius:50%;background:rgba(254,105,20,.15);border:1px solid rgba(254,105,20,.3);color:#fe6914;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">1</div>
+          <div style="width:24px;height:24px;border-radius:50%;background:rgba(40,107,145,.15);border:1px solid rgba(40,107,145,.3);color:#286b91;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">1</div>
           <div>
             <div style="font-size:13px;font-weight:600;color:#f5f5f5;margin-bottom:4px;">Abre Google Cloud Console</div>
-            <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:#fe6914;font-family:monospace;">console.cloud.google.com</a>
+            <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:#286b91;font-family:monospace;">console.cloud.google.com</a>
             <div style="font-size:12px;color:#b0b0b0;margin-top:4px;">Crea un proyecto nuevo (o usa uno existente)</div>
           </div>
         </div>
         <div style="background:#171717;border:1px solid #2a2a2a;border-radius:10px;padding:14px;display:flex;gap:12px;">
-          <div style="width:24px;height:24px;border-radius:50%;background:rgba(254,105,20,.15);border:1px solid rgba(254,105,20,.3);color:#fe6914;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">2</div>
+          <div style="width:24px;height:24px;border-radius:50%;background:rgba(40,107,145,.15);border:1px solid rgba(40,107,145,.3);color:#286b91;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">2</div>
           <div>
             <div style="font-size:13px;font-weight:600;color:#f5f5f5;margin-bottom:4px;">Habilita la API de Google Drive</div>
             <div style="font-size:12px;color:#b0b0b0;">APIs y servicios → Biblioteca → busca "Google Drive API" → Habilitar</div>
           </div>
         </div>
         <div style="background:#171717;border:1px solid #2a2a2a;border-radius:10px;padding:14px;display:flex;gap:12px;">
-          <div style="width:24px;height:24px;border-radius:50%;background:rgba(254,105,20,.15);border:1px solid rgba(254,105,20,.3);color:#fe6914;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">3</div>
+          <div style="width:24px;height:24px;border-radius:50%;background:rgba(40,107,145,.15);border:1px solid rgba(40,107,145,.3);color:#286b91;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">3</div>
           <div>
             <div style="font-size:13px;font-weight:600;color:#f5f5f5;margin-bottom:4px;">Crea credencial OAuth 2.0</div>
             <div style="font-size:12px;color:#b0b0b0;">Credenciales → Crear credencial → ID de cliente OAuth → Aplicación web</div>
@@ -740,17 +744,17 @@ button { min-height:44px; }
           </div>
         </div>
         <div style="background:#171717;border:1px solid #2a2a2a;border-radius:10px;padding:14px;display:flex;gap:12px;">
-          <div style="width:24px;height:24px;border-radius:50%;background:rgba(254,105,20,.15);border:1px solid rgba(254,105,20,.3);color:#fe6914;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">4</div>
+          <div style="width:24px;height:24px;border-radius:50%;background:rgba(40,107,145,.15);border:1px solid rgba(40,107,145,.3);color:#286b91;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;">4</div>
           <div style="width:100%;">
             <div style="font-size:13px;font-weight:600;color:#f5f5f5;margin-bottom:8px;">Pega tu Client ID aquí</div>
             <input id="client-id-input" type="text" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com"
               style="width:100%;background:#131313;border:1px solid #3f3f3f;border-radius:8px;padding:10px 12px;font-size:13px;font-family:monospace;color:#f5f5f5;outline:none;"
-              onfocus="this.style.borderColor='#fe6914'" onblur="this.style.borderColor='#3f3f3f'">
+              onfocus="this.style.borderColor='#286b91'" onblur="this.style.borderColor='#3f3f3f'">
           </div>
         </div>
       </div>
 
-      <button onclick="saveClientId()" style="width:100%;background:linear-gradient(135deg,#fe6914,#e85a0c);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+      <button onclick="saveClientId()" style="width:100%;background:linear-gradient(135deg,#286b91,#173146);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
         Guardar y conectar →
       </button>
     </div>
@@ -803,6 +807,28 @@ const DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1pdBetHvpcgj0Vj
 // pestaña) en lugar de localStorage, para reducir su exposición ante XSS.
 const tokenStore = window.sessionStorage;
 
+function applyTheme(theme, persist = false){
+  const nextTheme = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = nextTheme;
+  document.getElementById('theme-color-meta')?.setAttribute('content', nextTheme === 'dark' ? '#07141d' : '#edf4f8');
+  const button = document.getElementById('theme-toggle');
+  if(button){
+    const dark = nextTheme === 'dark';
+    button.textContent = dark ? '☀' : '☾';
+    button.setAttribute('aria-label', dark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
+  }
+  if(persist){
+    try { localStorage.setItem('runner-theme', nextTheme); } catch (_) {}
+  }
+}
+
+function setupTheme(){
+  applyTheme(document.documentElement.dataset.theme || 'light');
+  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true);
+  });
+}
+
 // ── STATE ────────────────────────────────────────────────────────
 let trips = [];
 let driveToken = null;
@@ -836,6 +862,7 @@ const PLATFORMS = [
 
 // ── INIT ─────────────────────────────────────────────────────────
 function init(){
+  setupTheme();
   const now = new Date();
   const dd = String(now.getDate()).padStart(2,'0');
   const mm = String(now.getMonth()+1).padStart(2,'0');
