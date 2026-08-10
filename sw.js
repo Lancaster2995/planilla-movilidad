@@ -5,19 +5,9 @@
  *    que la app cargue offline pero reciba actualizaciones cuando hay red.
  *  - Recursos GET (fuentes, JSZip, Tesseract, etc.): stale-while-revalidate,
  *    se sirven al instante desde caché y se refrescan en segundo plano.
- *  - Google Identity / Drive / userinfo: SIEMPRE red, nunca se cachean
- *    (son tokens y llamadas autenticadas que no deben quedar almacenadas).
  */
-const CACHE = 'runner-v1';
+const CACHE = 'runner-v2';
 const APP_SHELL = ['./', './index.html'];
-
-// Hosts que jamás deben pasar por caché
-const NO_CACHE_HOSTS = [
-  'accounts.google.com',
-  'oauth2.googleapis.com',
-  'www.googleapis.com',
-  'apis.google.com',
-];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -36,11 +26,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
-
-  const url = new URL(req.url);
-  if (NO_CACHE_HOSTS.some((h) => url.hostname === h || url.hostname.endsWith('.' + h))) {
-    return; // dejar pasar a la red sin intervenir
-  }
 
   // Navegaciones → network-first
   if (req.mode === 'navigate') {
