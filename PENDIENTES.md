@@ -1,6 +1,6 @@
 # Pendientes — Planilla de movilidad
 
-Verificado el **2026-09-06**.
+Verificado el **2026-09-07**.
 
 ## Estado hoy
 
@@ -11,15 +11,13 @@ Verificado el **2026-09-06**.
   `index.html` y una poda de `sw.js`), más el `.gitignore` de la metadata de Vercel. Eso ya
   bajó al disco con un `pull --rebase`.
 - Cuatro archivos: `index.html`, `sw.js` (caché `runner-v2`), el README y este documento.
+- GitHub Pages y Vercel responden 200; el README ya documenta el propósito, flujo y URLs.
 
 ## Pendiente
 
-1. **Escribir un estado de verdad.** El README dice sólo «Actualización de despliegue»: no hay
-   nada que diga qué resuelve, quién lo usa ni desde qué URL se sirve. Sin eso no se puede saber
-   qué falta — es lo primero si se retoma.
-2. **Comprobar el cambio del 10/08 en un dispositivo real.** Guardar en local en vez de Drive
+1. **Comprobar el cambio del 10/08 en un dispositivo real.** Guardar en local en vez de Drive
    cambia dónde viven los datos del usuario; el `sw.js` se tocó en el mismo commit.
-3. Cualquier cambio **exige subir `CACHE`** (hoy `runner-v2`), o los dispositivos con la PWA
+2. Cualquier cambio **exige subir `CACHE`** (hoy `runner-v2`), o los dispositivos con la PWA
    instalada se quedan con el shell anterior.
 
 ## Antes de tocarlo
